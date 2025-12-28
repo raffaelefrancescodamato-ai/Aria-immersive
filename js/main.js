@@ -34,17 +34,38 @@ function isFullscreenActive() {
     return document.fullscreenElement || document.webkitFullscreenElement;
 }
 
-function requestFullscreen() {
-    const request = rootElement.requestFullscreen || rootElement.webkitRequestFullscreen;
-    if (!request || isFullscreenActive()) return;
+function isFullscreenSupported() {
+    return Boolean(document.fullscreenEnabled || document.webkitFullscreenEnabled
+        || rootElement.requestFullscreen || rootElement.webkitRequestFullscreen);
+}
+
+function requestFullscreen(target = rootElement) {
+    const element = target || rootElement;
+    const request = element.requestFullscreen || element.webkitRequestFullscreen;
+    if (!request || isFullscreenActive()) return false;
     try {
-        const result = request.call(rootElement);
+        const result = request.call(element);
         if (result && typeof result.catch === 'function') {
             result.catch(() => {});
         }
+        return true;
     } catch (err) {
-        return;
+        return false;
     }
+}
+
+function getViewportSize() {
+    const viewport = window.visualViewport;
+    const width = Math.round(viewport?.width ?? window.innerWidth);
+    const height = Math.round(viewport?.height ?? window.innerHeight);
+    return { width, height };
+}
+
+function syncViewportUnits() {
+    const { width, height } = getViewportSize();
+    rootElement.style.setProperty('--vh', `${height * 0.01}px`);
+    rootElement.style.setProperty('--vw', `${width * 0.01}px`);
+    return { width, height };
 }
 
 async function init() {
@@ -53,12 +74,13 @@ async function init() {
     scene.background = new THREE.Color(0x0a0a0a); // Will be covered by room
     scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
 
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    const { width, height } = getViewportSize();
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     camera.position.set(0, 1.6, 6);
 
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas-3d'), antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -70,7 +92,9 @@ async function init() {
 
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.4, 0.85));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height), 0.4, 0.4, 0.85));
+
+    setupViewportListeners();
 
     cameraController = new CameraController(camera, renderer);
 
@@ -145,15 +169,30 @@ async function init() {
         loadProduct(scene, loadingManager, ktx2Loader)
     ]);
 
-    window.addEventListener('resize', onResize);
     animate();
 }
 
 function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const { width, height } = syncViewportUnits();
+    if (!camera || !renderer || !composer) return;
+    if (width <= 0 || height <= 0) return;
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height, false);
+    composer.setSize(width, height);
+}
+
+function setupViewportListeners() {
+    onResize();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', onResize);
+        window.visualViewport.addEventListener('scroll', onResize);
+    }
+    document.addEventListener('fullscreenchange', onResize);
+    document.addEventListener('webkitfullscreenchange', onResize);
 }
 
 function setupOrientationGuard() {
@@ -170,6 +209,7 @@ function setupOrientationGuard() {
         const isMobile = mobilePointer.matches && mobileViewport.matches;
         const isPortrait = portraitOrientation.matches;
         if (!isMobile || isPortrait) return;
+        if (!isFullscreenSupported()) return;
         requestFullscreen();
         setTimeout(() => window.scrollTo(0, 1), 200);
     };
@@ -213,6 +253,8 @@ function setupFullscreenPrompt() {
     const noButton = document.getElementById('fullscreen-no');
     if (!prompt || !yesButton || !noButton) return;
 
+    const promptText = prompt.querySelector('.fullscreen-text');
+    const defaultPromptText = promptText ? promptText.textContent : '';
     const storageKey = 'ariaFullscreenPromptDismissed';
     const mobilePointer = window.matchMedia('(pointer: coarse)');
     const mobileViewport = window.matchMedia('(max-width: 1024px)');
@@ -236,19 +278,54 @@ function setupFullscreenPrompt() {
         prompt.setAttribute('aria-hidden', show ? 'false' : 'true');
     };
 
+    const resetPromptState = () => {
+        if (promptText) promptText.textContent = defaultPromptText;
+        yesButton.disabled = false;
+        yesButton.removeAttribute('aria-disabled');
+    };
+
+    const showUnsupported = () => {
+        if (promptText) {
+            promptText.textContent = 'Per il tutto schermo aggiungi alla Home.';
+        }
+        yesButton.disabled = true;
+        yesButton.setAttribute('aria-disabled', 'true');
+    };
+
     const updatePrompt = () => {
         const isMobile = mobilePointer.matches && mobileViewport.matches;
         const shouldShow = isMobile
             && !portraitOrientation.matches
             && !isFullscreenActive()
             && !isDismissed();
+        if (shouldShow) {
+            resetPromptState();
+            if (!isFullscreenSupported()) {
+                showUnsupported();
+            }
+        }
         setVisible(shouldShow);
     };
 
     yesButton.addEventListener('click', () => {
-        setDismissed();
-        setVisible(false);
-        requestFullscreen();
+        if (!isFullscreenSupported()) {
+            showUnsupported();
+            return;
+        }
+        const requested = requestFullscreen();
+        setTimeout(() => window.scrollTo(0, 1), 200);
+        if (!requested) {
+            showUnsupported();
+            return;
+        }
+        setTimeout(() => {
+            if (isFullscreenActive()) {
+                setDismissed();
+                setVisible(false);
+            } else {
+                showUnsupported();
+            }
+        }, 600);
     });
 
     noButton.addEventListener('click', () => {
@@ -678,6 +755,7 @@ async function handleBack() {
     uiController.showCollectionButtons();
 }
 
+syncViewportUnits();
 setupOrientationGuard();
 setupFullscreenPrompt();
 init().catch(console.error);
