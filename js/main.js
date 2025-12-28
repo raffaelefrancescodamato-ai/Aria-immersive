@@ -138,6 +138,35 @@ function onResize() {
     composer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function setupOrientationGuard() {
+    const orientationScreen = document.getElementById('orientation-screen');
+    if (!orientationScreen) return;
+
+    const mobilePointer = window.matchMedia('(pointer: coarse)');
+    const mobileViewport = window.matchMedia('(max-width: 1024px)');
+    const portraitOrientation = window.matchMedia('(orientation: portrait)');
+
+    const updateOrientation = () => {
+        const isMobile = mobilePointer.matches && mobileViewport.matches;
+        const shouldLock = isMobile && portraitOrientation.matches;
+        orientationScreen.classList.toggle('hidden', !shouldLock);
+        orientationScreen.setAttribute('aria-hidden', shouldLock ? 'false' : 'true');
+        document.body.classList.toggle('orientation-locked', shouldLock);
+    };
+
+    updateOrientation();
+
+    [mobilePointer, mobileViewport, portraitOrientation].forEach(media => {
+        if (typeof media.addEventListener === 'function') {
+            media.addEventListener('change', updateOrientation);
+        } else if (typeof media.addListener === 'function') {
+            media.addListener(updateOrientation);
+        }
+    });
+    window.addEventListener('orientationchange', updateOrientation);
+    window.addEventListener('resize', updateOrientation);
+}
+
 function onMouseClick(event) {
     const panel = document.getElementById('product-panel');
     if (!panel || panel.classList.contains('hidden')) return;
@@ -544,4 +573,5 @@ async function handleBack() {
     uiController.showCollectionButtons();
 }
 
+setupOrientationGuard();
 init().catch(console.error);

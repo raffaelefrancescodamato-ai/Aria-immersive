@@ -80,6 +80,10 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+body.orientation-locked {
+    overflow: hidden;
+}
+
 /* Canvas */
 #canvas-3d {
     position: fixed;
@@ -110,6 +114,54 @@ body {
     --color-text-muted: rgba(0, 0, 0, 0.6);
     --color-white: #000000;
     --color-white-soft: rgba(0, 0, 0, 0.75);
+}
+
+/* ============================================
+   Orientation Screen (Mobile Portrait)
+   ============================================ */
+.orientation-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #0f1110 0%, #050605 70%);
+    color: #f5f2ea;
+    z-index: 2000;
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.orientation-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    max-width: 320px;
+    font-family: var(--font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.orientation-icon {
+    color: var(--color-gold);
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
+    animation: rotateHint 2.6s ease-in-out infinite;
+}
+
+@keyframes rotateHint {
+    0% {
+        transform: rotate(-6deg);
+    }
+
+    50% {
+        transform: rotate(6deg);
+    }
+
+    100% {
+        transform: rotate(-6deg);
+    }
 }
 
 /* ... (skip unmodified parts) ... */
