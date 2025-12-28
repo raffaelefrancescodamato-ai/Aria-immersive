@@ -80,6 +80,13 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+@supports (height: 100dvh) {
+    html,
+    body {
+        height: 100dvh;
+    }
+}
+
 body.orientation-locked {
     overflow: hidden;
 }
@@ -92,6 +99,12 @@ body.orientation-locked {
     width: 100%;
     height: 100%;
     z-index: 0;
+}
+
+@supports (height: 100dvh) {
+    #canvas-3d {
+        height: 100dvh;
+    }
 }
 
 /* ============================================
@@ -214,17 +227,23 @@ body.orientation-locked {
     padding: 0;
 }
 
+@supports (height: 100dvh) {
+    .intro-content {
+        height: 100dvh;
+    }
+}
+
 /* TOP SECTION: Logo attached to top edge with spacing */
 .intro-top {
     width: 100%;
     display: flex;
     justify-content: center;
-    padding-top: 4rem;
+    padding-top: clamp(1.2rem, 6vh, 4rem);
     /* "un po' di spazio" dal bordo superiore */
 }
 
 .intro-logo {
-    width: 250px;
+    width: clamp(150px, 28vh, 250px);
     opacity: 1;
     /* No margin needed as padding handles positioning */
 }
@@ -238,13 +257,13 @@ body.orientation-locked {
     align-items: center;
     flex-grow: 1;
     /* Takes up all available space */
-    padding-top: 8rem;
+    padding-top: clamp(1.5rem, 8vh, 8rem);
     /* Offset visual center downwards as requested */
 }
 
 .intro-title {
     font-family: var(--font-display);
-    font-size: 8rem;
+    font-size: clamp(3rem, 15vh, 8rem);
     font-weight: 300;
     letter-spacing: -0.02em;
     color: #000000;
@@ -255,12 +274,12 @@ body.orientation-locked {
 
 .intro-subtitle {
     font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-size: clamp(0.9rem, 2.6vh, 1.25rem);
     font-weight: 400;
     letter-spacing: 0.2em;
     color: #000000;
     text-transform: uppercase;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: clamp(1rem, 3vh, 2rem);
 }
 
 .intro-divider {
@@ -280,14 +299,14 @@ body.orientation-locked {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-bottom: 4rem;
+    padding-bottom: clamp(1.2rem, 6vh, 4rem);
     /* "un po' di spazio" dal bordo inferiore */
 }
 
 .intro-description {
-    font-size: 1rem;
+    font-size: clamp(0.85rem, 2.2vh, 1rem);
     color: var(--color-text-muted);
-    margin-bottom: 1.5rem;
+    margin-bottom: clamp(0.75rem, 2.6vh, 1.5rem);
     /* Space between text and button */
     line-height: 1.8;
 }
