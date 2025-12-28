@@ -177,7 +177,9 @@ body.orientation-locked {
 }
 
 .orientation-icon {
-    color: var(--color-gold);
+    width: clamp(90px, 26vw, 150px);
+    height: auto;
+    display: block;
     filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
     animation: rotateHint 2.6s ease-in-out infinite;
 }
@@ -1132,9 +1134,11 @@ body.ui-locked #fullscreen-toggle {
     font-weight: 500;
 }
 
-.interact-hint svg {
+.interact-hint .interact-icon {
+    width: 44px;
+    height: 44px;
     animation: tapPulse 1.8s ease-in-out infinite;
-    color: var(--color-gold);
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.4));
 }
 
 @keyframes tapPulse {

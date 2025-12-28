@@ -309,16 +309,12 @@ function setupFullscreenPrompt() {
 
     const resetPromptState = () => {
         if (promptText) promptText.textContent = defaultPromptText;
-        yesButton.disabled = false;
-        yesButton.removeAttribute('aria-disabled');
     };
 
-    const showUnsupported = () => {
+    const showFallback = () => {
         if (promptText) {
-            promptText.textContent = 'Per il tutto schermo aggiungi alla Home.';
+            promptText.textContent = 'Aggiungi alla Home per il tutto schermo.';
         }
-        yesButton.disabled = true;
-        yesButton.setAttribute('aria-disabled', 'true');
     };
 
     const updatePrompt = () => {
@@ -329,22 +325,15 @@ function setupFullscreenPrompt() {
             && !isDismissed();
         if (shouldShow) {
             resetPromptState();
-            if (!isFullscreenSupported()) {
-                showUnsupported();
-            }
         }
         setVisible(shouldShow);
     };
 
     yesButton.addEventListener('click', () => {
-        if (!isFullscreenSupported()) {
-            showUnsupported();
-            return;
-        }
         const requested = requestFullscreen([renderer?.domElement, rootElement]);
         setTimeout(() => window.scrollTo(0, 1), 200);
         if (!requested) {
-            showUnsupported();
+            showFallback();
             return;
         }
         setTimeout(() => {
@@ -352,7 +341,7 @@ function setupFullscreenPrompt() {
                 setDismissed();
                 setVisible(false);
             } else {
-                showUnsupported();
+                showFallback();
             }
         }, 600);
     });
@@ -388,11 +377,10 @@ function setupFullscreenToggle() {
 
     const updateToggle = () => {
         const isMobile = mobilePointer.matches && mobileViewport.matches;
-        const supported = isFullscreenSupported();
         const active = isFullscreenActive();
         toggle.classList.toggle('hidden', !isMobile);
         toggle.removeAttribute('disabled');
-        toggle.setAttribute('aria-disabled', supported ? 'false' : 'true');
+        toggle.setAttribute('aria-disabled', 'false');
         toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
         toggle.setAttribute('aria-label', active ? 'Esci da schermo intero' : 'Schermo intero');
         toggle.setAttribute('title', active ? 'Esci da schermo intero' : 'Schermo intero');
@@ -410,17 +398,13 @@ function setupFullscreenToggle() {
     showToast.timeoutId = null;
 
     toggle.addEventListener('click', () => {
-        if (!isFullscreenSupported()) {
-            showToast('Fullscreen non supportato su questo browser.');
-            return;
-        }
         if (isFullscreenActive()) {
             exitFullscreen();
         } else {
             const requested = requestFullscreen([renderer?.domElement, rootElement]);
             setTimeout(() => window.scrollTo(0, 1), 200);
             if (!requested) {
-                showToast('Fullscreen non supportato su questo browser.');
+                showToast('Aggiungi alla Home per il tutto schermo.');
                 return;
             }
             setTimeout(() => {
