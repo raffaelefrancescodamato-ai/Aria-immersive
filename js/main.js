@@ -39,19 +39,33 @@ function isFullscreenSupported() {
         || rootElement.requestFullscreen || rootElement.webkitRequestFullscreen);
 }
 
-function requestFullscreen(target = rootElement) {
-    const element = target || rootElement;
-    const request = element.requestFullscreen || element.webkitRequestFullscreen;
-    if (!request || isFullscreenActive()) return false;
-    try {
-        const result = request.call(element);
-        if (result && typeof result.catch === 'function') {
-            result.catch(() => {});
+function requestFullscreen(targets = rootElement) {
+    if (isFullscreenActive()) return false;
+    const list = Array.isArray(targets) ? targets.slice() : [targets];
+    list.push(renderer?.domElement, document.body, rootElement);
+    const unique = Array.from(new Set(list.filter(Boolean)));
+
+    for (const element of unique) {
+        const request = element.requestFullscreen || element.webkitRequestFullscreen;
+        if (!request) continue;
+        try {
+            if (element.requestFullscreen) {
+                const result = element.requestFullscreen({ navigationUI: 'hide' });
+                if (result && typeof result.catch === 'function') {
+                    result.catch(() => {});
+                }
+            } else {
+                const result = request.call(element);
+                if (result && typeof result.catch === 'function') {
+                    result.catch(() => {});
+                }
+            }
+            return true;
+        } catch (err) {
+            continue;
         }
-        return true;
-    } catch (err) {
-        return false;
     }
+    return false;
 }
 
 function exitFullscreen() {
@@ -327,7 +341,7 @@ function setupFullscreenPrompt() {
             showUnsupported();
             return;
         }
-        const requested = requestFullscreen();
+        const requested = requestFullscreen([renderer?.domElement, rootElement]);
         setTimeout(() => window.scrollTo(0, 1), 200);
         if (!requested) {
             showUnsupported();
@@ -366,6 +380,7 @@ function setupFullscreenPrompt() {
 
 function setupFullscreenToggle() {
     const toggle = document.getElementById('fullscreen-toggle');
+    const toast = document.getElementById('fullscreen-toast');
     if (!toggle) return;
 
     const mobilePointer = window.matchMedia('(pointer: coarse)');
@@ -376,20 +391,43 @@ function setupFullscreenToggle() {
         const supported = isFullscreenSupported();
         const active = isFullscreenActive();
         toggle.classList.toggle('hidden', !isMobile);
-        toggle.disabled = !supported;
+        toggle.removeAttribute('disabled');
         toggle.setAttribute('aria-disabled', supported ? 'false' : 'true');
         toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
         toggle.setAttribute('aria-label', active ? 'Esci da schermo intero' : 'Schermo intero');
         toggle.setAttribute('title', active ? 'Esci da schermo intero' : 'Schermo intero');
     };
 
+    const showToast = (message) => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        clearTimeout(showToast.timeoutId);
+        showToast.timeoutId = setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 2600);
+    };
+    showToast.timeoutId = null;
+
     toggle.addEventListener('click', () => {
-        if (toggle.disabled) return;
+        if (!isFullscreenSupported()) {
+            showToast('Fullscreen non supportato su questo browser.');
+            return;
+        }
         if (isFullscreenActive()) {
             exitFullscreen();
         } else {
-            requestFullscreen();
+            const requested = requestFullscreen([renderer?.domElement, rootElement]);
             setTimeout(() => window.scrollTo(0, 1), 200);
+            if (!requested) {
+                showToast('Fullscreen non supportato su questo browser.');
+                return;
+            }
+            setTimeout(() => {
+                if (!isFullscreenActive()) {
+                    showToast('Aggiungi alla Home per il tutto schermo.');
+                }
+            }, 600);
         }
     });
 

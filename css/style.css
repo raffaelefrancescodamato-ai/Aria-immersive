@@ -648,6 +648,24 @@ body.ui-locked #fullscreen-toggle {
     cursor: not-allowed;
 }
 
+.fullscreen-toast {
+    position: absolute;
+    top: calc(var(--spacing-lg) + 52px + env(safe-area-inset-top, 0px));
+    right: calc(var(--spacing-lg) + env(safe-area-inset-right, 0px));
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(8, 10, 8, 0.82);
+    color: #f5f2ea;
+    border: 1px solid rgba(245, 242, 234, 0.22);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    max-width: min(70vw, 320px);
+    pointer-events: none;
+}
+
 /* ============================================
    Panels
    ============================================ */
@@ -1154,6 +1172,12 @@ body.ui-locked #fullscreen-toggle {
         height: 40px;
         top: calc(var(--spacing-sm) + env(safe-area-inset-top, 0px));
         right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
+    }
+
+    .fullscreen-toast {
+        top: calc(var(--spacing-sm) + 48px + env(safe-area-inset-top, 0px));
+        right: calc(var(--spacing-sm) + env(safe-area-inset-right, 0px));
+        font-size: 0.65rem;
     }
 
     #product-panel {
