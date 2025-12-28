@@ -28,6 +28,24 @@ let collectionRequestId = 0;
 let pendingCollectionRequest = null;
 let cinematicState = null;
 const VALID_COLLECTIONS = new Set(['elegance', 'minimal', 'luxury']);
+const rootElement = document.documentElement;
+
+function isFullscreenActive() {
+    return document.fullscreenElement || document.webkitFullscreenElement;
+}
+
+function requestFullscreen() {
+    const request = rootElement.requestFullscreen || rootElement.webkitRequestFullscreen;
+    if (!request || isFullscreenActive()) return;
+    try {
+        const result = request.call(rootElement);
+        if (result && typeof result.catch === 'function') {
+            result.catch(() => {});
+        }
+    } catch (err) {
+        return;
+    }
+}
 
 async function init() {
     clock = new THREE.Clock();
@@ -142,28 +160,10 @@ function setupOrientationGuard() {
     const orientationScreen = document.getElementById('orientation-screen');
     if (!orientationScreen) return;
 
-    const rootElement = document.documentElement;
     const mobilePointer = window.matchMedia('(pointer: coarse)');
     const mobileViewport = window.matchMedia('(max-width: 1024px)');
     const portraitOrientation = window.matchMedia('(orientation: portrait)');
     let hasGesture = false;
-
-    const isFullscreenActive = () => {
-        return document.fullscreenElement || document.webkitFullscreenElement;
-    };
-
-    const requestFullscreen = () => {
-        const request = rootElement.requestFullscreen || rootElement.webkitRequestFullscreen;
-        if (!request || isFullscreenActive()) return;
-        try {
-            const result = request.call(rootElement);
-            if (result && typeof result.catch === 'function') {
-                result.catch(() => {});
-            }
-        } catch (err) {
-            return;
-        }
-    };
 
     const tryEnterFullscreen = () => {
         if (!hasGesture) return;
@@ -205,6 +205,71 @@ function setupOrientationGuard() {
     });
     window.addEventListener('orientationchange', updateOrientation);
     window.addEventListener('resize', updateOrientation);
+}
+
+function setupFullscreenPrompt() {
+    const prompt = document.getElementById('fullscreen-prompt');
+    const yesButton = document.getElementById('fullscreen-yes');
+    const noButton = document.getElementById('fullscreen-no');
+    if (!prompt || !yesButton || !noButton) return;
+
+    const storageKey = 'ariaFullscreenPromptDismissed';
+    const mobilePointer = window.matchMedia('(pointer: coarse)');
+    const mobileViewport = window.matchMedia('(max-width: 1024px)');
+    const portraitOrientation = window.matchMedia('(orientation: portrait)');
+    const storage = (() => {
+        try {
+            return window.localStorage;
+        } catch (err) {
+            return null;
+        }
+    })();
+
+    const isDismissed = () => storage?.getItem(storageKey) === '1';
+    const setDismissed = () => {
+        if (!storage) return;
+        storage.setItem(storageKey, '1');
+    };
+
+    const setVisible = (show) => {
+        prompt.classList.toggle('hidden', !show);
+        prompt.setAttribute('aria-hidden', show ? 'false' : 'true');
+    };
+
+    const updatePrompt = () => {
+        const isMobile = mobilePointer.matches && mobileViewport.matches;
+        const shouldShow = isMobile
+            && !portraitOrientation.matches
+            && !isFullscreenActive()
+            && !isDismissed();
+        setVisible(shouldShow);
+    };
+
+    yesButton.addEventListener('click', () => {
+        setDismissed();
+        setVisible(false);
+        requestFullscreen();
+    });
+
+    noButton.addEventListener('click', () => {
+        setDismissed();
+        setVisible(false);
+    });
+
+    updatePrompt();
+
+    [mobilePointer, mobileViewport, portraitOrientation].forEach(media => {
+        if (typeof media.addEventListener === 'function') {
+            media.addEventListener('change', updatePrompt);
+        } else if (typeof media.addListener === 'function') {
+            media.addListener(updatePrompt);
+        }
+    });
+
+    document.addEventListener('fullscreenchange', updatePrompt);
+    document.addEventListener('webkitfullscreenchange', updatePrompt);
+    window.addEventListener('orientationchange', updatePrompt);
+    window.addEventListener('resize', updatePrompt);
 }
 
 function onMouseClick(event) {
@@ -614,4 +679,5 @@ async function handleBack() {
 }
 
 setupOrientationGuard();
+setupFullscreenPrompt();
 init().catch(console.error);
