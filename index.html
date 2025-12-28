@@ -37,13 +37,13 @@
     <!-- Orientation Screen (Mobile Portrait) -->
     <div id="orientation-screen" class="orientation-screen hidden" aria-hidden="true">
         <div class="orientation-content">
-            <svg class="orientation-icon" width="120" height="120" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="28" y="10" width="40" height="76" rx="8"></rect>
-                <circle cx="48" cy="72" r="3"></circle>
-                <path d="M18 36a26 26 0 0 1 40-16"></path>
-                <path d="M58 20h-10m10 0v-10"></path>
-                <path d="M78 60a26 26 0 0 1-40 16"></path>
-                <path d="M38 76h10m-10 0v10"></path>
+            <svg class="orientation-icon" width="140" height="140" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="34" y="16" width="52" height="88" rx="10"></rect>
+                <circle cx="60" cy="88" r="3"></circle>
+                <path d="M18 44a40 40 0 0 1 58-22"></path>
+                <path d="M76 20h-14m14 0V6"></path>
+                <path d="M102 76a40 40 0 0 1-58 22"></path>
+                <path d="M44 100h14m-14 0v14"></path>
             </svg>
             <p>Ruota il dispositivo in orizzontale per continuare</p>
         </div>
@@ -97,6 +97,18 @@
         </div>
         <button id="skip-intro" class="skip-intro hidden" type="button">Salta introduzione</button>
         <button id="stop-cinematic" class="stop-cinematic hidden" type="button">Stop</button>
+        <button id="fullscreen-toggle" class="fullscreen-toggle hidden" type="button" aria-pressed="false" aria-label="Schermo intero" title="Schermo intero">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 3H3v5" />
+                <path d="M3 3l6 6" />
+                <path d="M16 3h5v5" />
+                <path d="M21 3l-6 6" />
+                <path d="M8 21H3v-5" />
+                <path d="M3 21l6-6" />
+                <path d="M16 21h5v-5" />
+                <path d="M21 21l-6-6" />
+            </svg>
+        </button>
 
         <!-- Collection Menu -->
         <div id="collection-menu" class="panel hidden">
@@ -153,13 +165,13 @@
 
         <!-- Interact Hint -->
         <div id="interact-hint" class="hidden interact-hint">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 12V6a1 1 0 0 1 2 0v6" />
-                <path d="M9 12V5a1 1 0 0 1 2 0v7" />
-                <path d="M11 12V6a1 1 0 0 1 2 0v6" />
-                <path d="M13 12V7a1 1 0 0 1 2 0v6" />
-                <path d="M7 12v4a4 4 0 0 0 4 4h2a3 3 0 0 0 3-3v-5" />
-                <path d="M4 11l2 1" />
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="3.5" r="2.2" />
+                <path d="M12 5.7v7.3" />
+                <path d="M9 12v-1.6a1.4 1.4 0 1 1 2.8 0V12" />
+                <path d="M12 12v-3a1.4 1.4 0 1 1 2.8 0V12" />
+                <path d="M14.8 12v-1.4a1.4 1.4 0 1 1 2.8 0V15" />
+                <path d="M8.8 12v3.4A4.2 4.2 0 0 0 13 19.6h1.4a3.6 3.6 0 0 0 3.6-3.6V12" />
             </svg>
             <span>Clicca per ruotare 360°</span>
         </div>

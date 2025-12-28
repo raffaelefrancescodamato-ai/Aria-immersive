@@ -54,6 +54,20 @@ function requestFullscreen(target = rootElement) {
     }
 }
 
+function exitFullscreen() {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!exit || !isFullscreenActive()) return false;
+    try {
+        const result = exit.call(document);
+        if (result && typeof result.catch === 'function') {
+            result.catch(() => {});
+        }
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
 function getViewportSize() {
     const viewport = window.visualViewport;
     const width = Math.round(viewport?.width ?? window.innerWidth);
@@ -84,6 +98,7 @@ async function init() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.touchAction = 'none';
 
     // SINGLE SHARED KTX2 LOADER INSTANCE
     const ktx2Loader = new KTX2Loader()
@@ -124,7 +139,7 @@ async function init() {
     // INTERACTION
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
-    window.addEventListener('click', onMouseClick);
+    setupCanvasInteractions();
 
     // LOADING MANAGER
     const loadingManager = new THREE.LoadingManager();
@@ -349,14 +364,104 @@ function setupFullscreenPrompt() {
     window.addEventListener('resize', updatePrompt);
 }
 
-function onMouseClick(event) {
+function setupFullscreenToggle() {
+    const toggle = document.getElementById('fullscreen-toggle');
+    if (!toggle) return;
+
+    const mobilePointer = window.matchMedia('(pointer: coarse)');
+    const mobileViewport = window.matchMedia('(max-width: 1024px)');
+
+    const updateToggle = () => {
+        const isMobile = mobilePointer.matches && mobileViewport.matches;
+        const supported = isFullscreenSupported();
+        const active = isFullscreenActive();
+        toggle.classList.toggle('hidden', !isMobile);
+        toggle.disabled = !supported;
+        toggle.setAttribute('aria-disabled', supported ? 'false' : 'true');
+        toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+        toggle.setAttribute('aria-label', active ? 'Esci da schermo intero' : 'Schermo intero');
+        toggle.setAttribute('title', active ? 'Esci da schermo intero' : 'Schermo intero');
+    };
+
+    toggle.addEventListener('click', () => {
+        if (toggle.disabled) return;
+        if (isFullscreenActive()) {
+            exitFullscreen();
+        } else {
+            requestFullscreen();
+            setTimeout(() => window.scrollTo(0, 1), 200);
+        }
+    });
+
+    updateToggle();
+
+    [mobilePointer, mobileViewport].forEach(media => {
+        if (typeof media.addEventListener === 'function') {
+            media.addEventListener('change', updateToggle);
+        } else if (typeof media.addListener === 'function') {
+            media.addListener(updateToggle);
+        }
+    });
+    document.addEventListener('fullscreenchange', updateToggle);
+    document.addEventListener('webkitfullscreenchange', updateToggle);
+    window.addEventListener('orientationchange', updateToggle);
+    window.addEventListener('resize', updateToggle);
+}
+
+function setupCanvasInteractions() {
+    if (!renderer || !renderer.domElement) return;
+    const canvas = renderer.domElement;
+    if (window.PointerEvent) {
+        canvas.addEventListener('pointerdown', onCanvasPointerDown, { passive: true, capture: true });
+    } else {
+        canvas.addEventListener('mousedown', onCanvasPointerDown, { passive: true, capture: true });
+        canvas.addEventListener('touchstart', onCanvasPointerDown, { passive: true, capture: true });
+    }
+}
+
+function getPointerCoords(event) {
+    if (event?.changedTouches && event.changedTouches.length) {
+        return {
+            x: event.changedTouches[0].clientX,
+            y: event.changedTouches[0].clientY
+        };
+    }
+    if (event?.touches && event.touches.length) {
+        return {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY
+        };
+    }
+    return { x: event.clientX, y: event.clientY };
+}
+
+function onCanvasPointerDown(event) {
     const panel = document.getElementById('product-panel');
     if (!panel || panel.classList.contains('hidden')) return;
     if (!allowProductOrbit) return;
-    if (cameraController && cameraController.isOrbiting) return;
+    if (!cameraController) return;
+    if (cameraController.isOrbiting) return;
 
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const { width, height } = getViewportSize();
+    const coords = getPointerCoords(event);
+    if (!Number.isFinite(coords.x) || !Number.isFinite(coords.y)) return;
+
+    mouse.x = (coords.x / width) * 2 - 1;
+    mouse.y = -(coords.y / height) * 2 + 1;
+
+    const isTouch = event?.pointerType === 'touch'
+        || event?.touches
+        || event?.changedTouches
+        || window.matchMedia('(pointer: coarse)').matches;
+
+    if (isTouch) {
+        const targetPos = getProductFocusPosition(currentCollection);
+        const bounds = getProductBounds(currentCollection);
+        const radius = bounds ? bounds.radius : 2.8;
+        cameraController.enableOrbitMode(targetPos, { radius });
+        uiController.hideInteractHint();
+        return;
+    }
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(scene.children, true);
@@ -758,4 +863,5 @@ async function handleBack() {
 syncViewportUnits();
 setupOrientationGuard();
 setupFullscreenPrompt();
+setupFullscreenToggle();
 init().catch(console.error);
