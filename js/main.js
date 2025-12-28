@@ -142,9 +142,37 @@ function setupOrientationGuard() {
     const orientationScreen = document.getElementById('orientation-screen');
     if (!orientationScreen) return;
 
+    const rootElement = document.documentElement;
     const mobilePointer = window.matchMedia('(pointer: coarse)');
     const mobileViewport = window.matchMedia('(max-width: 1024px)');
     const portraitOrientation = window.matchMedia('(orientation: portrait)');
+    let hasGesture = false;
+
+    const isFullscreenActive = () => {
+        return document.fullscreenElement || document.webkitFullscreenElement;
+    };
+
+    const requestFullscreen = () => {
+        const request = rootElement.requestFullscreen || rootElement.webkitRequestFullscreen;
+        if (!request || isFullscreenActive()) return;
+        try {
+            const result = request.call(rootElement);
+            if (result && typeof result.catch === 'function') {
+                result.catch(() => {});
+            }
+        } catch (err) {
+            return;
+        }
+    };
+
+    const tryEnterFullscreen = () => {
+        if (!hasGesture) return;
+        const isMobile = mobilePointer.matches && mobileViewport.matches;
+        const isPortrait = portraitOrientation.matches;
+        if (!isMobile || isPortrait) return;
+        requestFullscreen();
+        setTimeout(() => window.scrollTo(0, 1), 200);
+    };
 
     const updateOrientation = () => {
         const isMobile = mobilePointer.matches && mobileViewport.matches;
@@ -152,9 +180,21 @@ function setupOrientationGuard() {
         orientationScreen.classList.toggle('hidden', !shouldLock);
         orientationScreen.setAttribute('aria-hidden', shouldLock ? 'false' : 'true');
         document.body.classList.toggle('orientation-locked', shouldLock);
+        if (!shouldLock) {
+            tryEnterFullscreen();
+        }
     };
 
     updateOrientation();
+
+    const markGesture = () => {
+        hasGesture = true;
+        tryEnterFullscreen();
+    };
+
+    window.addEventListener('pointerdown', markGesture, { once: true, passive: true });
+    window.addEventListener('touchstart', markGesture, { once: true, passive: true });
+    window.addEventListener('keydown', markGesture, { once: true });
 
     [mobilePointer, mobileViewport, portraitOrientation].forEach(media => {
         if (typeof media.addEventListener === 'function') {
